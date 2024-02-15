@@ -104,7 +104,7 @@ contract DuelContract {
 		Bet memory bet = bets[_betId];
 		require(bet.player1 != msg.sender, "You can't challenge yourself");
 		require(bet.state == BetState.PENDING, "Bet must be PENDING to be accepted");
-		require(bet.amount == msg.value, "You haven't sent the exact ETH to accept");
+		require(bet.amount <= msg.value, "You haven't sent required amount of ETH to accept");
 		require(bet.lastBlockNumber > block.number + timeOutBlockNumber, "Bets can only be accepted 1 day before the last block number");
 
 		// Assign the second player and set state to INPROGRESS and emit an event

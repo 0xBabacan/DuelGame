@@ -10,13 +10,13 @@ const BetList = () => {
   const { address: connectedAddress } = useAccount();
   const [betId, setBetId] = useState<bigint>("");
   const [betAmount, setBetAmount] = useState<bigint>("");
-
+/*
   const { data: betState } = useScaffoldContractRead({
     contractName: "DuelContract",
     functionName: "getBetState",
     args: [BigInt(betId)],
   });
-
+*/
   const { writeAsync: deleteBet } = useScaffoldContractWrite({
     contractName: "DuelContract",
     functionName: "deleteBet",
@@ -62,26 +62,28 @@ const BetList = () => {
     const isBetFinished: boolean = betFinishedHistory?.some(singleEventBetFinished => singleEventBetFinished.args[0] === singleEventBetCreated.args[0]) || false;
     return { singleEventBetCreated, isBetAccepted, isBetFinished };
   });
-
+/*
   useEffect(() => {
     if (betList) {
       betList.forEach(({ singleEventBetCreated }) => {
         setBetId(parseInt(singleEventBetCreated.args[0].toString()));
-        setBetAmount(parseEther(singleEventBetCreated.args[2].toString()));
+        setBetAmount(singleEventBetCreated.args[2].toString());
       });
     }
   }, [betList]);
-/*
-  const acceptBetCallback = useCallback(
-    () => acceptBet({ args: [BigInt(singleEventBetCreated.args[0])] }),
-    [singleEventBetCreated]
-  );
-
-  const finishBetCallback = useCallback(
-    () => finishBet({ args: [BigInt(singleEventBetCreated.args[0])] }),
-    [singleEventBetCreated]
-  );
 */
+  const handleDelete = (singleEventBetCreated) => {
+    deleteBet({ args: [BigInt(singleEventBetCreated.args[0])] });
+  };
+
+  const handleAccept = (singleEventBetCreated) => {
+    acceptBet({ args: [BigInt(singleEventBetCreated.args[0])], value: BigInt(singleEventBetCreated.args[2].toString()) });
+  };
+
+  const handleFinish = (singleEventBetCreated) => {
+    finishBet({ args: [BigInt(singleEventBetCreated.args[0])] })
+  };
+
   return (
     <div>
       {isLoadingBetCreatedHistory ? (
@@ -127,7 +129,7 @@ const BetList = () => {
                           ) : isBetAccepted ? (
                             <>
                               <span>Accepted</span>
-                              <button className="btn btn-secondary h-[1.5rem] min-h-[1.5rem]" colorScheme={"yellow"} onClick={() => finishBet({ args: [BigInt(singleEventBetCreated.args[0])] })}>
+                              <button className="btn btn-secondary h-[1.5rem] min-h-[1.5rem]" colorScheme={"yellow"} onClick={() => handleFinish(singleEventBetCreated)}>
                                 Finish bet!
                               </button>
                             </>
@@ -135,11 +137,11 @@ const BetList = () => {
                             <>
                               <span>Waiting   </span>
                               {singleEventBetCreated.args[1] === connectedAddress ? (
-                                <button className="btn btn-secondary h-[1.5rem] min-h-[1.5rem]" colorScheme={"red"} onClick={() => deleteBet({ args: [BigInt(singleEventBetCreated.args[0])] })}>
+                                <button className="btn btn-secondary h-[1.5rem] min-h-[1.5rem]" colorScheme={"red"} onClick={() => handleDelete(singleEventBetCreated)}>
                                   Delete bet!
                                 </button>
                               ) : (
-                                <button className="btn btn-secondary h-[1.5rem] min-h-[1.5rem]" colorScheme={"green"} onClick={() => acceptBet({ args: [BigInt(singleEventBetCreated.args[0])] })}>
+                                <button className="btn btn-secondary h-[1.5rem] min-h-[1.5rem]" colorScheme={"green"} onClick={() => handleAccept(singleEventBetCreated)}>
                                   Accept bet!
                                 </button>
                               )}
