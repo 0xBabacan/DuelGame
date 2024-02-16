@@ -7,8 +7,13 @@ import { GenericContractsDeclaration } from "~~/utils/scaffold-eth/contract";
 const deployedContracts = {
   31337: {
     DuelContract: {
-      address: "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+      address: "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853",
       abi: [
+        {
+          inputs: [],
+          stateMutability: "nonpayable",
+          type: "constructor",
+        },
         {
           anonymous: false,
           inputs: [
@@ -51,9 +56,9 @@ const deployedContracts = {
             },
             {
               indexed: false,
-              internalType: "uint256",
+              internalType: "int256",
               name: "targetPrice",
-              type: "uint256",
+              type: "int256",
             },
             {
               indexed: false,
@@ -167,9 +172,9 @@ const deployedContracts = {
               type: "uint8",
             },
             {
-              internalType: "uint256",
+              internalType: "int256",
               name: "targetPrice",
-              type: "uint256",
+              type: "int256",
             },
             {
               internalType: "bool",
@@ -193,9 +198,9 @@ const deployedContracts = {
         {
           inputs: [
             {
-              internalType: "uint256",
+              internalType: "int256",
               name: "_targetPrice",
-              type: "uint256",
+              type: "int256",
             },
             {
               internalType: "bool",
@@ -253,6 +258,19 @@ const deployedContracts = {
               internalType: "enum DuelContract.BetState",
               name: "",
               type: "uint8",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [],
+          name: "getLatestPrice",
+          outputs: [
+            {
+              internalType: "int256",
+              name: "",
+              type: "int256",
             },
           ],
           stateMutability: "view",

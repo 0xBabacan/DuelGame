@@ -10,7 +10,7 @@ const Home: NextPage = () => {
   return (
     <>
       <div className="flex flex-col flex-grow pt-16 px-8 py-12 gap-12 sm:flex-row">
-        <div className="bg-base-200 max-w-lg rounded-3xl" style={{ flex: 1, backgroundColor: 'darkgreen' }}>
+        <div className="bg-base-200 max-w-lg rounded-3xl" style={{ flex: 1, backgroundColor: "#004D40" }}>
           {<CreateBet/>}
         </div>
         <div>

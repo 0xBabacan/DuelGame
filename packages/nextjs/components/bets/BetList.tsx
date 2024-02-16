@@ -43,6 +43,13 @@ const BetList = () => {
     watch: true,
   });
 
+  const { data: betDeletedHistory } = useScaffoldEventHistory({
+    contractName: "DuelContract",
+    eventName: "BetDeleted",
+    fromBlock: BigInt(process.env.NEXT_PUBLIC_DEPLOY_BLOCK || "0"),
+    watch: true,
+  });
+
   const { data: betAcceptedHistory } = useScaffoldEventHistory({
     contractName: "DuelContract",
     eventName: "BetAccepted",
@@ -58,9 +65,10 @@ const BetList = () => {
   });
 
   const betList = betCreatedHistory?.map(singleEventBetCreated => {
+    const isBetDeleted: boolean = betDeletedHistory?.some(singleEventBetDeleted => singleEventBetDeleted.args[0] === singleEventBetCreated.args[0]) || false;
     const isBetAccepted: boolean = betAcceptedHistory?.some(singleEventBetAccepted => singleEventBetAccepted.args[0] === singleEventBetCreated.args[0]) || false;
     const isBetFinished: boolean = betFinishedHistory?.some(singleEventBetFinished => singleEventBetFinished.args[0] === singleEventBetCreated.args[0]) || false;
-    return { singleEventBetCreated, isBetAccepted, isBetFinished };
+    return { singleEventBetCreated, isBetDeleted, isBetAccepted, isBetFinished };
   });
 /*
   useEffect(() => {
@@ -89,7 +97,7 @@ const BetList = () => {
       {isLoadingBetCreatedHistory ? (
           <strong> Loading... </strong>
       ) : (
-        <div className="rounded-3xl" style={{ flex: 1, backgroundColor: 'darkblue' }}>
+        <div className="rounded-3xl" style={{ flex: 1, backgroundColor: "#F5A558" }}>
           <div className="text-center mb-4">
             <span className="block text-2xl font-bold">Active Bets</span>
           </div>
@@ -114,7 +122,7 @@ const BetList = () => {
                     </td>
                   </tr>
                 ) : (
-                  betList?.map(({ singleEventBetCreated, isBetAccepted, isBetFinished }) => {
+                  betList?.map(({ singleEventBetCreated, isBetDeleted, isBetAccepted, isBetFinished }) => {
                     return (
                       <tr key={parseInt(singleEventBetCreated.args[0].toString())}>
                         <td>{parseInt(singleEventBetCreated.args[0].toString())}</td>
@@ -133,6 +141,8 @@ const BetList = () => {
                                 Finish bet!
                               </button>
                             </>
+                          ) : isBetDeleted ? (
+                            <span>Deleted</span>
                           ) : (
                             <>
                               <span>Waiting   </span>
