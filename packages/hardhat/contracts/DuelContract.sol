@@ -3,7 +3,7 @@ pragma solidity >=0.8.0 <0.9.0;
 
 // Useful for debugging. Remove when deploying to a live network.
 import "hardhat/console.sol";
-import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
+//import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 
 /**
  * @title Duelgame
@@ -136,7 +136,7 @@ contract DuelContract {
 		Bet storage bet = bets[_betId];
 		require(bet.state == BetState.ACCEPTED, "Bet is not in ACCEPTED state");
 		require(bet.lastBlockNumber < block.number, "Bet is not completed yet");
-//https://blog.chain.link/fetch-current-crypto-price-data-solidity/#creating_the_smart_contract
+		//https://blog.chain.link/fetch-current-crypto-price-data-solidity/#creating_the_smart_contract
 		// Determine the result based on the winner and update game state accordingly
 		uint price = 2820; //getLatestPrice();
 		if ((price > bet.targetPrice && bet.isHigherChosen == true) || (price < bet.targetPrice && bet.isHigherChosen == false)) {
@@ -149,13 +149,13 @@ contract DuelContract {
 			emit BetFinished(_betId, bet.player2, bet.player1, bet.amount);		// TODO -> winner & loser addressleri duzgun degerlendir burada
 		}
 	}
-
+/*
     function getLatestPrice() public view returns (int256) {
     (, int256 price, , , ) = priceFeed.latestRoundData();
     	return price;
         //return (price / 1e8);
     }
-
+*/
 	function getBetState(uint256 _betId) public view returns (BetState)  {
 		return bets[_betId].state;
 	}
