@@ -78,14 +78,14 @@ contract DuelContract {
 		address indexed loser,
 		uint256 amount
 	);
-
+/*
 	AggregatorV3Interface internal priceFeed;
 
 	constructor() {
         // ETH / USD
         priceFeed = AggregatorV3Interface(0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419);
     }
-
+*/
 	/* EXTERNAL FUNCTIONS */
 	function createBet(uint256 _targetPrice, bool _isHigherChosen, uint256 _lastBlockNumber) external payable {
 		require(_targetPrice > 0, "You cannot create bet with target price being 0");
