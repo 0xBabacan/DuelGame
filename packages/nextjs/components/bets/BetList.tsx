@@ -10,13 +10,9 @@ const BetList = () => {
   const { address: connectedAddress } = useAccount();
   const [betId, setBetId] = useState<bigint>("");
   const [betAmount, setBetAmount] = useState<bigint>("");
-/*
-  const { data: betState } = useScaffoldContractRead({
-    contractName: "DuelContract",
-    functionName: "getBetState",
-    args: [BigInt(betId)],
-  });
-*/
+  const [betList, setBetList] = useState([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(true);
+
   const { writeAsync: deleteBet } = useScaffoldContractWrite({
     contractName: "DuelContract",
     functionName: "deleteBet",
@@ -36,7 +32,7 @@ const BetList = () => {
     args: [BigInt(betId)],
   });
 
-  const { data: betCreatedHistory, isLoading: isLoadingBetCreatedHistory } = useScaffoldEventHistory({
+  const { data: betCreatedHistory } = useScaffoldEventHistory({
     contractName: "DuelContract",
     eventName: "BetCreated",
     fromBlock: BigInt(process.env.NEXT_PUBLIC_DEPLOY_BLOCK || "0"),
@@ -64,22 +60,20 @@ const BetList = () => {
     watch: true,
   });
 
-  const betList = betCreatedHistory?.map(singleEventBetCreated => {
-    const isBetDeleted: boolean = betDeletedHistory?.some(singleEventBetDeleted => singleEventBetDeleted.args[0] === singleEventBetCreated.args[0]) || false;
-    const isBetAccepted: boolean = betAcceptedHistory?.some(singleEventBetAccepted => singleEventBetAccepted.args[0] === singleEventBetCreated.args[0]) || false;
-    const isBetFinished: boolean = betFinishedHistory?.some(singleEventBetFinished => singleEventBetFinished.args[0] === singleEventBetCreated.args[0]) || false;
-    return { singleEventBetCreated, isBetDeleted, isBetAccepted, isBetFinished };
-  });
-/*
   useEffect(() => {
-    if (betList) {
-      betList.forEach(({ singleEventBetCreated }) => {
-        setBetId(parseInt(singleEventBetCreated.args[0].toString()));
-        setBetAmount(singleEventBetCreated.args[2].toString());
+    if (betCreatedHistory) {
+      const updatedBetList = betCreatedHistory.map(singleEventBetCreated => {
+        const isBetDeleted: boolean = betDeletedHistory?.some(singleEventBetDeleted => singleEventBetDeleted.args[0] === singleEventBetCreated.args[0]) || false;
+        const isBetAccepted: boolean = betAcceptedHistory?.some(singleEventBetAccepted => singleEventBetAccepted.args[0] === singleEventBetCreated.args[0]) || false;
+        const isBetFinished: boolean = betFinishedHistory?.some(singleEventBetFinished => singleEventBetFinished.args[0] === singleEventBetCreated.args[0]) || false;
+        return { singleEventBetCreated, isBetDeleted, isBetAccepted, isBetFinished };
       });
+
+      setBetList(updatedBetList);
+      setIsLoadingHistory(false);
     }
-  }, [betList]);
-*/
+  }, [betCreatedHistory, betDeletedHistory, betAcceptedHistory, betFinishedHistory]);
+
   const handleDelete = (singleEventBetCreated) => {
     deleteBet({ args: [BigInt(singleEventBetCreated.args[0])] });
   };
@@ -93,19 +87,17 @@ const BetList = () => {
   };
 
   return (
-    <div>
-      {isLoadingBetCreatedHistory ? (
+    <div className="px-8 py-12">
+      {isLoadingHistory ? (
           <strong> Loading... </strong>
       ) : (
-        <div className="rounded-3xl" style={{ flex: 1, backgroundColor: "#F5A558" }}>
-          <div className="text-center mb-4">
-            <span className="block text-2xl font-bold">Active Bets</span>
-          </div>
+        <div>
+          <span className="text-center mb-4 block text-2xl font-bold">Active Bets</span>
           <div className="overflow-x-auto shadow-lg">
             <table className="table table-zebra w-full">
               <thead>
-                <tr>
-                  <th className="bg-primary">Bet ID</th>
+                <tr className="bg-primary">
+                  <th>Bet ID</th>
                   <th>Created by</th>
                   <th>Bet Amount</th>
                   <th>Target Price</th>
@@ -115,7 +107,7 @@ const BetList = () => {
                 </tr>
               </thead>
               <tbody>
-                {!betCreatedHistory || betCreatedHistory.length === 0 ? (
+                {betList.length === 0 ? (
                   <tr>
                     <td colSpan={4} className="text-center">
                       No events found

@@ -2,15 +2,21 @@ import React from "react";
 import { useScaffoldContractWrite } from "~~/hooks/scaffold-eth";
 import { parseEther  } from "viem";
 import { useState, useEffect } from "react";
-import { HardhatRuntimeEnvironment } from 'hardhat/types';
 
 const CreateBet = () => {
-
+  
   const [currentBlockNumber, setCurrentBlockNumber] = useState(0);
   const [targetPrice, setTargetPrice] = useState<string>("");
   const [isHigherChosen, setIsHigherChosen] = useState(true);
   const [lastBlockNumber, setLastBlockNumber] = useState<string>("");
   const [betAmount, setBetAmount]  = useState<string>("");
+
+  const { writeAsync: createBet } = useScaffoldContractWrite({
+    contractName: "DuelContract",
+    functionName: "createBet",
+    value: parseEther(betAmount),
+    args: [BigInt(targetPrice), isHigherChosen, BigInt(lastBlockNumber)],
+  });
 
   useEffect(() => {
     const fetchBlockNumber = async () => {
@@ -44,19 +50,11 @@ const CreateBet = () => {
     return () => clearInterval(intervalId);
   }, []); // Empty dependency array to run effect only once
 
-  const { writeAsync: createBet } = useScaffoldContractWrite({
-    contractName: "DuelContract",
-    functionName: "createBet",
-    value: parseEther(betAmount),
-    args: [BigInt(targetPrice), isHigherChosen, BigInt(lastBlockNumber)],
-  });
-/*
-  const toggleCheckbox = (isChecked) => {
-    setIsHigherChosen(isChecked);
-  }
-*/
   return (
     <div className="px-8 py-12 space-y-3">
+      <div className="text-center mb-4">
+        <span className="block text-2xl font-bold">Create a bet!</span>
+      </div>
       <div className="flex flex-row items-center">
         <div className="w-full text-l">Target ETH price:</div>
         <input

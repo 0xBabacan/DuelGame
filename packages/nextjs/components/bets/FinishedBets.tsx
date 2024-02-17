@@ -1,34 +1,41 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useScaffoldEventHistory } from "~~/hooks/scaffold-eth";
 import { Address } from "~~/components/scaffold-eth";
 import { formatEther } from "viem";
 
 const FinishedBets = () => {
+  const [finishedBets, setFinishedBets] = useState([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(true);
 
-  const { data: betFinishedHistory, isLoading: isLoadingBetFinishedHistory } = useScaffoldEventHistory({
+  const { data: betFinishedHistory } = useScaffoldEventHistory({
     contractName: "DuelContract",
     eventName: "BetFinished",
     fromBlock: BigInt(process.env.NEXT_PUBLIC_DEPLOY_BLOCK || "0"),
     watch: true,
   });
 
-  const finishedBets = betFinishedHistory?.map(singleEventBetFinished => {
-      const betId: bigint = singleEventBetFinished.args[0] || BigInt(0);
-      const winner: string = singleEventBetFinished.args[1];
-      const loser: string = singleEventBetFinished.args[2];
-      const amount: bigint = singleEventBetFinished.args[3] || BigInt(0);
-    return { betId, winner, loser, amount };
-  });
+  useEffect(() => {
+    if (betFinishedHistory) {
+      const updatedFinishedBets = betFinishedHistory.map(singleEventBetFinished => {
+        const betId = BigInt(singleEventBetFinished.args[0]) || BigInt(0);
+        const winner = singleEventBetFinished.args[1];
+        const loser = singleEventBetFinished.args[2];
+        const amount = BigInt(singleEventBetFinished.args[3]) || BigInt(0);
+        return { betId, winner, loser, amount };
+      });
+
+      setFinishedBets(updatedFinishedBets);
+      setIsLoadingHistory(false);
+    }
+  }, [betFinishedHistory]);
 
   return (
-    <div>
-      {isLoadingBetFinishedHistory ? (
-          <strong> Loading... </strong>
+    <div className="px-8 py-12">
+      {isLoadingHistory ? (
+        <strong> Loading... </strong>
       ) : (
-        <div className="rounded-3xl" style={{ flex: 1, backgroundColor: 'coral' }}>
-          <div className="text-center mb-4">
-            <span className="block text-2xl font-bold">Finished Bets</span>
-          </div>
+        <div>
+          <span className="text-center mb-4 block text-2xl font-bold">Finished Bets</span>
           <div className="overflow-x-auto shadow-lg">
             <table className="table table-zebra w-full">
               <thead>
@@ -40,23 +47,21 @@ const FinishedBets = () => {
                 </tr>
               </thead>
               <tbody>
-                {!betFinishedHistory || betFinishedHistory.length === 0 ? (
+                {finishedBets.length === 0 ? (
                   <tr>
                     <td colSpan={4} className="text-center">
                       No events finished yet!
                     </td>
                   </tr>
                 ) : (
-                  finishedBets?.map(({ betId, winner, loser, amount }) => {
-                    return (
-                      <tr key={parseInt(betId.toString())}>
-                        <td>{parseInt(betId.toString())}</td>
-                        <td><Address address={winner} /></td>
-                        <td><Address address={loser} /></td>
-                        <td>{parseFloat(formatEther(amount)).toFixed(4)}</td>
-                      </tr>
-                    );
-                  })
+                  finishedBets.map(({ betId, winner, loser, amount }) => (
+                    <tr key={parseInt(betId.toString())}>
+                      <td>{parseInt(betId.toString())}</td>
+                      <td><Address address={winner} /></td>
+                      <td><Address address={loser} /></td>
+                      <td>{parseFloat(formatEther(amount)).toFixed(4)}</td>
+                    </tr>
+                  ))
                 )}
               </tbody>
             </table>

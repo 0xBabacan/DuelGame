@@ -7,7 +7,7 @@ import { GenericContractsDeclaration } from "~~/utils/scaffold-eth/contract";
 const deployedContracts = {
   31337: {
     DuelContract: {
-      address: "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853",
+      address: "0x68B1D87F95878fE05B998F19b66F4baba5De1aed",
       abi: [
         {
           inputs: [],
@@ -56,9 +56,9 @@ const deployedContracts = {
             },
             {
               indexed: false,
-              internalType: "int256",
+              internalType: "uint256",
               name: "targetPrice",
-              type: "int256",
+              type: "uint256",
             },
             {
               indexed: false,
@@ -172,9 +172,9 @@ const deployedContracts = {
               type: "uint8",
             },
             {
-              internalType: "int256",
+              internalType: "uint256",
               name: "targetPrice",
-              type: "int256",
+              type: "uint256",
             },
             {
               internalType: "bool",
@@ -198,9 +198,9 @@ const deployedContracts = {
         {
           inputs: [
             {
-              internalType: "int256",
+              internalType: "uint256",
               name: "_targetPrice",
-              type: "int256",
+              type: "uint256",
             },
             {
               internalType: "bool",

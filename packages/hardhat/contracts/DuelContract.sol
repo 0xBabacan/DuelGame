@@ -35,7 +35,7 @@ import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 */
 contract DuelContract {
 	uint256 public betIdCounter = 0;
-    uint256 public immutable timeOutBlockNumber = 5; // TODO 240;	// (4 * 60) Bet cannot be accepted in the last hour 
+    uint256 public immutable timeOutBlockNumber = 1; // TODO 240;	// (4 * 60) Bet cannot be accepted in the last hour 
 
 	enum BetState {
 		WAITING,
@@ -48,7 +48,7 @@ contract DuelContract {
 		address player1;
 		address player2;
 		BetState state;
-		int256 targetPrice;
+		uint256 targetPrice;
 		bool isHigherChosen;
 		uint256 lastBlockNumber;
 		uint256 amount;
@@ -61,7 +61,7 @@ contract DuelContract {
 		uint256 indexed betId,
 		address indexed player1,
 		uint256 indexed amount,
-		int256 targetPrice,
+		uint256 targetPrice,
 		bool isHigherChosen,
 		uint256 lastBlockNumber
 	);
@@ -87,7 +87,7 @@ contract DuelContract {
     }
 
 	/* EXTERNAL FUNCTIONS */
-	function createBet(int256 _targetPrice, bool _isHigherChosen, uint256 _lastBlockNumber) external payable {
+	function createBet(uint256 _targetPrice, bool _isHigherChosen, uint256 _lastBlockNumber) external payable {
 		require(_targetPrice > 0, "You cannot create bet with target price being 0");
 		require(_lastBlockNumber > block.number, "Last block number is smaller than the current block number!");
 
@@ -138,7 +138,7 @@ contract DuelContract {
 		require(bet.lastBlockNumber < block.number, "Bet is not completed yet");
 //https://blog.chain.link/fetch-current-crypto-price-data-solidity/#creating_the_smart_contract
 		// Determine the result based on the winner and update game state accordingly
-		int256 price = getLatestPrice();
+		uint price = 2820; //getLatestPrice();
 		if ((price > bet.targetPrice && bet.isHigherChosen == true) || (price < bet.targetPrice && bet.isHigherChosen == false)) {
 			bets[_betId].state = BetState.PLAYER1WON;
 			payable(bet.player1).transfer(2 * bet.amount);	// TODO 0.1 of the bet is taken by the contract
