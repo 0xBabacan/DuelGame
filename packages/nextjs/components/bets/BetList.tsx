@@ -1,15 +1,14 @@
-import React from "react";
-import { useScaffoldContractRead, useScaffoldContractWrite, useScaffoldEventHistory } from "~~/hooks/scaffold-eth";
+import React, { useEffect, useState } from "react";
+import { useScaffoldContractWrite, useScaffoldEventHistory } from "~~/hooks/scaffold-eth";
 import { Address } from "~~/components/scaffold-eth";
 import { useAccount } from "wagmi";
-import { formatEther, parseEther } from "viem";
-import { useState, useEffect } from "react";
+import { formatEther } from "viem";
 
 const BetList = () => {
 
   const { address: connectedAddress } = useAccount();
-  const [betId, setBetId] = useState<bigint>("");
-  const [betAmount, setBetAmount] = useState<bigint>("");
+  const [betId, setBetId] = useState("");
+  const [betAmount, setBetAmount] = useState("");
   const [betList, setBetList] = useState([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
 
@@ -79,6 +78,8 @@ const BetList = () => {
   };
 
   const handleAccept = (singleEventBetCreated) => {
+    setBetId(singleEventBetCreated.args[0].toString());
+    setBetAmount(singleEventBetCreated.args[2].toString());
     acceptBet({ args: [BigInt(singleEventBetCreated.args[0])], value: BigInt(singleEventBetCreated.args[2].toString()) });
   };
 

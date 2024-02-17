@@ -1,7 +1,6 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useScaffoldContractWrite } from "~~/hooks/scaffold-eth";
 import { parseEther  } from "viem";
-import { useState, useEffect } from "react";
 
 const CreateBet = () => {
   
