@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from "react";
-import { useScaffoldContractWrite } from "~~/hooks/scaffold-eth";
-import { parseEther  } from "viem";
+import { useScaffoldContractRead, useScaffoldContractWrite } from "~~/hooks/scaffold-eth";
+import { parseEther, createPublicClient } from "viem";
+import { getBlockNumber } from '@wagmi/core'
+import { Web3 } from "web3"
 
 const CreateBet = () => {
   
-  const [currentBlockNumber, setCurrentBlockNumber] = useState(0);
+  const [currentBlockNumber, setCurrentBlockNumber] = useState<string>("");
   const [targetPrice, setTargetPrice] = useState<string>("");
   const [isHigherChosen, setIsHigherChosen] = useState(true);
   const [lastBlockNumber, setLastBlockNumber] = useState<string>("");
@@ -17,37 +19,19 @@ const CreateBet = () => {
     args: [BigInt(targetPrice), isHigherChosen, BigInt(lastBlockNumber)],
   });
 
-  useEffect(() => {
-    const fetchBlockNumber = async () => {
-      try {
-        const response = await fetch('http://localhost:8545', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            jsonrpc: '2.0',
-            method: 'eth_blockNumber',
-            params: [],
-            id: 1,
-          }),
-        });
-        const data = await response.json();
-        setCurrentBlockNumber(parseInt(data.result, 16));
-      } catch (error) {
-        console.error('Error fetching block number:', error);
-      }
-    };
-
-    // Fetch block number initially
+  useEffect(() => {  
+    const fetchBlockNumber = () => {
+      const provider = "https://eth-sepolia.g.alchemy.com/v2/oKxs-03sij-U_N0iOlrSsZFr29-IqbuF"
+      const web3Provider = new Web3.providers.HttpProvider(provider);
+      const web3 = new Web3(web3Provider);
+      
+      web3.eth.getBlockNumber().then((result) => { setCurrentBlockNumber(result.toString()); });
+    }
     fetchBlockNumber();
+    const intervalId = setInterval(fetchBlockNumber, 1000);
 
-    // Fetch block number every 15 seconds
-    const intervalId = setInterval(fetchBlockNumber, 15000);
-
-    // Cleanup function to clear interval
     return () => clearInterval(intervalId);
-  }, []); // Empty dependency array to run effect only once
+  }, []);
 
   return (
     <div className="px-8 py-12 space-y-3">
@@ -96,9 +80,11 @@ const CreateBet = () => {
       <button className="btn btn-secondary h-[3rem] min-h-[3rem] mt-16 ml-32" onClick={() => createBet()}>
         Create your bet!
       </button>
-      <div>
+      <div style={{ marginBottom: '2rem' }}></div>
+      <div className="block text-l font-bold">
         Current Block No: {currentBlockNumber}
       </div>
+      <span  style={{ fontSize: '0.8em' }}>*Please note that the block number increases every 15 seconds.</span>
     </div>
   );
 };

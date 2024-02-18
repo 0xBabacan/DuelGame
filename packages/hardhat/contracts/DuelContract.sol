@@ -3,7 +3,7 @@ pragma solidity >=0.8.0 <0.9.0;
 
 // Useful for debugging. Remove when deploying to a live network.
 import "hardhat/console.sol";
-//import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
+import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 
 /**
  * @title Duelgame
@@ -34,8 +34,9 @@ import "hardhat/console.sol";
                 )}
 */
 contract DuelContract {
+	address public owner = 0x5D70E3b540f58beCd10B74f6c0958b31e3190DA7;	// babacan.eth
 	uint256 public betIdCounter = 0;
-    uint256 public immutable timeOutBlockNumber = 1; // TODO 240;	// (4 * 60) Bet cannot be accepted in the last hour 
+    uint256 public immutable timeOutBlockNumber = 4; // TODO 240;	// (4 * 60) Bet cannot be accepted in the last hour 
 
 	enum BetState {
 		WAITING,
@@ -48,7 +49,7 @@ contract DuelContract {
 		address player1;
 		address player2;
 		BetState state;
-		uint256 targetPrice;
+		int256 targetPrice;
 		bool isHigherChosen;
 		uint256 lastBlockNumber;
 		uint256 amount;
@@ -56,12 +57,11 @@ contract DuelContract {
 	
 	mapping(uint256 => Bet) public bets;
 
-	/* EVENTS */
 	event BetCreated(
 		uint256 indexed betId,
 		address indexed player1,
 		uint256 indexed amount,
-		uint256 targetPrice,
+		int256 targetPrice,
 		bool isHigherChosen,
 		uint256 lastBlockNumber
 	);
@@ -78,16 +78,14 @@ contract DuelContract {
 		address indexed loser,
 		uint256 amount
 	);
-/*
+
 	AggregatorV3Interface internal priceFeed;
 
 	constructor() {
-        // ETH / USD
-        priceFeed = AggregatorV3Interface(0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419);
+        priceFeed = AggregatorV3Interface(0x8A753747A1Fa494EC906cE90E9f37563A8AF630e);	// ETH / USD
     }
-*/
-	/* EXTERNAL FUNCTIONS */
-	function createBet(uint256 _targetPrice, bool _isHigherChosen, uint256 _lastBlockNumber) external payable {
+
+	function createBet(int256 _targetPrice, bool _isHigherChosen, uint256 _lastBlockNumber) external payable {
 		require(_targetPrice > 0, "You cannot create bet with target price being 0");
 		require(_lastBlockNumber > block.number, "Last block number is smaller than the current block number!");
 
@@ -103,7 +101,6 @@ contract DuelContract {
 			amount: msg.value,
             lastBlockNumber : _lastBlockNumber
 		});
-
 		emit BetCreated(betIdCounter, msg.sender, msg.value, _targetPrice, _isHigherChosen, _lastBlockNumber);
 	}
 
@@ -131,32 +128,37 @@ contract DuelContract {
 		payable(msg.sender).transfer(bet.amount);
 		emit BetDeleted(_betId);
 	}
-	
+
 	function finishBet(uint256 _betId) external {
 		Bet storage bet = bets[_betId];
 		require(bet.state == BetState.ACCEPTED, "Bet is not in ACCEPTED state");
 		require(bet.lastBlockNumber < block.number, "Bet is not completed yet");
-		//https://blog.chain.link/fetch-current-crypto-price-data-solidity/#creating_the_smart_contract
+
 		// Determine the result based on the winner and update game state accordingly
-		uint price = 2820; //getLatestPrice();
+		int price = getLatestPrice();
 		if ((price > bet.targetPrice && bet.isHigherChosen == true) || (price < bet.targetPrice && bet.isHigherChosen == false)) {
 			bets[_betId].state = BetState.PLAYER1WON;
-			payable(bet.player1).transfer(2 * bet.amount);	// TODO 0.1 of the bet is taken by the contract
-			emit BetFinished(_betId, bet.player1, bet.player2, bet.amount);		// TODO -> winner & loser addressleri duzgun degerlendir burada
+			payable(bet.player1).transfer(19 * bet.amount / 10);
+			emit BetFinished(_betId, bet.player1, bet.player2, bet.amount);
 		} else {
 			bets[_betId].state = BetState.PLAYER2WON;
-			payable(bet.player2).transfer(2 * bet.amount);	// TODO 0.1 of the bet is taken by the contract
-			emit BetFinished(_betId, bet.player2, bet.player1, bet.amount);		// TODO -> winner & loser addressleri duzgun degerlendir burada
+			payable(bet.player1).transfer(19 * bet.amount / 10);
+			emit BetFinished(_betId, bet.player2, bet.player1, bet.amount);
 		}
 	}
-/*
-    function getLatestPrice() public view returns (int256) {
-    (, int256 price, , , ) = priceFeed.latestRoundData();
-    	return price;
-        //return (price / 1e8);
-    }
-*/
-	function getBetState(uint256 _betId) public view returns (BetState)  {
-		return bets[_betId].state;
+
+	function getLatestPrice() public view returns (int) {
+	    (, int price, , , ) = priceFeed.latestRoundData();
+	    //return (price / 1e8);
+	    return price;
 	}
+
+	function withdraw() external {
+		require(msg.sender == owner, "You are not babacan.eth");
+		uint256 balance = address(this).balance;
+		require(balance > 0, "Contract has no balance to withdraw");
+		payable(owner).transfer(balance);
+	}
+
+    receive() external payable {}
 }

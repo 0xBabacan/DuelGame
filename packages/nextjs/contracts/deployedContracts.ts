@@ -5,9 +5,9 @@
 import { GenericContractsDeclaration } from "~~/utils/scaffold-eth/contract";
 
 const deployedContracts = {
-  31337: {
+  11155111: {
     DuelContract: {
-      address: "0x68B1D87F95878fE05B998F19b66F4baba5De1aed",
+      address: "0x2d07e04661D306f39ea19761115f78e1cbB715D9",
       abi: [
         {
           inputs: [],
@@ -56,9 +56,9 @@ const deployedContracts = {
             },
             {
               indexed: false,
-              internalType: "uint256",
+              internalType: "int256",
               name: "targetPrice",
-              type: "uint256",
+              type: "int256",
             },
             {
               indexed: false,
@@ -172,9 +172,9 @@ const deployedContracts = {
               type: "uint8",
             },
             {
-              internalType: "uint256",
+              internalType: "int256",
               name: "targetPrice",
-              type: "uint256",
+              type: "int256",
             },
             {
               internalType: "bool",
@@ -198,9 +198,9 @@ const deployedContracts = {
         {
           inputs: [
             {
-              internalType: "uint256",
+              internalType: "int256",
               name: "_targetPrice",
-              type: "uint256",
+              type: "int256",
             },
             {
               internalType: "bool",
@@ -245,19 +245,13 @@ const deployedContracts = {
           type: "function",
         },
         {
-          inputs: [
-            {
-              internalType: "uint256",
-              name: "_betId",
-              type: "uint256",
-            },
-          ],
-          name: "getBetState",
+          inputs: [],
+          name: "getBlockNumber",
           outputs: [
             {
-              internalType: "enum DuelContract.BetState",
+              internalType: "uint256",
               name: "",
-              type: "uint8",
+              type: "uint256",
             },
           ],
           stateMutability: "view",
@@ -278,6 +272,19 @@ const deployedContracts = {
         },
         {
           inputs: [],
+          name: "owner",
+          outputs: [
+            {
+              internalType: "address",
+              name: "",
+              type: "address",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [],
           name: "timeOutBlockNumber",
           outputs: [
             {
@@ -288,6 +295,17 @@ const deployedContracts = {
           ],
           stateMutability: "view",
           type: "function",
+        },
+        {
+          inputs: [],
+          name: "withdraw",
+          outputs: [],
+          stateMutability: "nonpayable",
+          type: "function",
+        },
+        {
+          stateMutability: "payable",
+          type: "receive",
         },
       ],
       inheritedFunctions: {},
