@@ -33,7 +33,7 @@ const FinishedBets = () => {
 
   return (
     <div className="flex sm:flex-row pt-16 justify-center text-gray-800">
-      <div className="justify-center bg-base-300 rounded-3xl px-8 py-12" style={{ backgroundColor: '#CD5B45' }}>
+      <div className="justify-center rounded-3xl px-8 py-12" style={{ backgroundColor: '#CD5B45' }}>
         {isLoadingHistory ? (
           <strong> Loading... </strong>
         ) : (
