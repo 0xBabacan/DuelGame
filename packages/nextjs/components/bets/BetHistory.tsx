@@ -158,11 +158,11 @@ const BetHistory = () => {
             <table className="table w-full">
               <thead>
                 <tr className="bg-primary text-center" style={{ fontSize: '1.2em' }}>
-                  <th>Bet ID</th>
+                  <th>ID</th>
                   <th>Created by</th>
-                  <th>Bet Amount</th>
-                  <th>Target Price</th>
-                  <th>isHigher</th>
+                  <th>Amount</th>
+                  <th>Price</th>
+                  <th>Bet</th>
                   <th>Deadline</th>
                   <th>Status</th>
                 </tr>
@@ -181,34 +181,34 @@ const BetHistory = () => {
                         <td>{parseInt(singleEventBetCreated.args[0].toString())}</td>
                         <td><Address address={singleEventBetCreated.args[1]} /></td>
                         <td>{parseFloat(formatEther(singleEventBetCreated.args[2])).toFixed(4)}</td>
-                        <td>{singleEventBetCreated.args[3] !== "" ? (parseFloat(singleEventBetCreated.args[3].toString()) / 10**18).toFixed(4) : 0}</td>
-                        <td>{singleEventBetCreated.args[4].toString()}</td>
+                        <td>{singleEventBetCreated.args[3] !== "" ? (parseFloat(singleEventBetCreated.args[3].toString()) / 10**18).toFixed(2) : 0}</td>
+                        <td>{singleEventBetCreated.args[4] ? "higher" : "lower"}</td>
                         <td>{formatTimestamp(parseInt(singleEventBetCreated.args[5].toString()))}</td>
-                        <td>
+                        <td className="items-center">
                           {isBetFinished ? (
                             <span>Finished</span>
                           ) : isBetAccepted ? (
-                            <>
-                              <span style={{ marginRight: '1rem' }}>Accepted</span>
-                              <button className="btn btn-secondary h-[1.8rem] min-h-[1.5rem]" onClick={() => handleFinish(singleEventBetCreated)}>
+                            <div className="flex flex-row items-center justify-center gap-2">
+                              <span>Accepted</span>
+                              <button className="btn btn-secondary h-[2rem] min-h-[1.5rem]" onClick={() => handleFinish(singleEventBetCreated)}>
                                 Finish bet!
                               </button>
-                            </>
+                            </div>
                           ) : isBetDeleted ? (
                             <span>Deleted</span>
                           ) : (
-                            <>
-                              <span style={{ marginRight: '1rem' }}>Waiting   </span>
+                            <div className="flex flex-col items-center justify-center gap-2">
+                              <span>Waiting...</span>
                               {singleEventBetCreated.args[1] === connectedAddress ? (
-                                <button className="btn btn-secondary h-[1.8rem] min-h-[1.5rem]" onClick={() => handleDelete(singleEventBetCreated)}>
+                                <button className="btn btn-secondary h-[2rem] min-h-[1.5rem]" onClick={() => handleDelete(singleEventBetCreated)}>
                                   Delete bet!
                                 </button>
                               ) : (
-                                <button className="btn btn-secondary h-[1.8rem] min-h-[1.5rem]" onClick={() => handleAccept(singleEventBetCreated)}>
+                                <button className="btn btn-secondary h-[2rem] min-h-[1.5rem]" onClick={() => handleAccept(singleEventBetCreated)}>
                                   Accept bet!
                                 </button>
                               )}
-                            </>
+                            </div>
                           )}
                         </td>
                       </tr>
