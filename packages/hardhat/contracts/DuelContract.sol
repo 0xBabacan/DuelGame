@@ -4,6 +4,7 @@ pragma solidity >=0.8.0 <0.9.0;
 // Useful for debugging. Remove when deploying to a live network.
 import "hardhat/console.sol";
 import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
 /**
  * @title Duelgame
@@ -12,31 +13,11 @@ import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
  * @dev Currently it will be used for challenging other accounts to bet on ETH price
  * Sports, finance and other topic can be implemented for betting in future     
  */
- /*
-                 ) : (betState != 2 && betState != 3) ? (
-                  betCreatedHistory?.map((event, index) => {
-                    return (
-                      <tr key={index}>
-                        setBetId(parseInt(event.args.betId.toString()));
-                        <td>{parseInt(event.args.betId.toString())}</td>
-                        <td className="text-center">
-                          <Address address={event.args.player1} />
-                        </td>
-                        <td>{parseInt(event.args.targetPrice.toString())}</td>
-                        <td>{event.args.isHigherChosen.toString()}</td>
-                        <td>{parseInt(event.args.lastBlockNumber.toString())}</td>
-                        <td>{parseFloat(formatEther(event.args.amount)).toFixed(4)}</td>
-                      </tr>
-                    );
-                  })
-                ) : (
-                  Check finished bets
-                )}
-*/
-contract DuelContract {
-	address public owner = 0x5D70E3b540f58beCd10B74f6c0958b31e3190DA7;	// babacan.eth
+
+contract DuelContract is Ownable {
+	address public owner = 0x5D70E3b540f58beCd10B74f6c0958b31e3190DA7;	// Owner is babacan.eth
 	uint256 public betIdCounter = 0;
-    uint256 public immutable timeOutBlockNumber = 4; // TODO 240;	// (4 * 60) Bet cannot be accepted in the last hour 
+    uint256 public immutable timeoutValueForOneHour = 300; // TODO 3600;	// (60 * 60) Bet cannot be accepted in the last hour 
 
 	enum BetState {
 		WAITING,
@@ -51,7 +32,7 @@ contract DuelContract {
 		BetState state;
 		int256 targetPrice;
 		bool isHigherChosen;
-		uint256 lastBlockNumber;
+		uint256 targetTimestamp;
 		uint256 amount;
 	}
 	
@@ -63,7 +44,7 @@ contract DuelContract {
 		uint256 indexed amount,
 		int256 targetPrice,
 		bool isHigherChosen,
-		uint256 lastBlockNumber
+		uint256 targetTimestamp
 	);
 	event BetAccepted(
 		uint256 indexed betId,
@@ -82,12 +63,18 @@ contract DuelContract {
 	AggregatorV3Interface internal priceFeed;
 
 	constructor() {
-        priceFeed = AggregatorV3Interface(0x8A753747A1Fa494EC906cE90E9f37563A8AF630e);	// ETH / USD
+		yourToken = YourToken(tokenAddress);
+        priceFeed = AggregatorV3Interface(0x694AA1769357215DE4FAC081bf1f309aDC325306);	// ETH / USD
     }
 
-	function createBet(int256 _targetPrice, bool _isHigherChosen, uint256 _lastBlockNumber) external payable {
+	modifier onlyBoss() {
+		require(msg.sender == owner(), "Sorry, you're not the boss!");
+		_;
+	}
+
+	function createBet(int256 _targetPrice, bool _isHigherChosen, uint256 _targetTimestamp) external payable {
 		require(_targetPrice > 0, "You cannot create bet with target price being 0");
-		require(_lastBlockNumber > block.number, "Last block number is smaller than the current block number!");
+		require(_targetTimestamp > block.timestamp, "Last block number is smaller than the current block number!");
 
 		// Increase betIdCounter by one, as a new bet is created
 		betIdCounter++;
@@ -99,9 +86,9 @@ contract DuelContract {
 			isHigherChosen: _isHigherChosen,
 			state: BetState.WAITING,
 			amount: msg.value,
-            lastBlockNumber : _lastBlockNumber
+            targetTimestamp : _targetTimestamp
 		});
-		emit BetCreated(betIdCounter, msg.sender, msg.value, _targetPrice, _isHigherChosen, _lastBlockNumber);
+		emit BetCreated(betIdCounter, msg.sender, msg.value, _targetPrice, _isHigherChosen, _targetTimestamp);
 	}
 
 	function acceptBet(uint256 _betId) external payable {
@@ -109,7 +96,7 @@ contract DuelContract {
 		require(bet.player1 != msg.sender, "You can't challenge yourself");
 		require(bet.state == BetState.WAITING, "Bet must be WAITING to be accepted");
 		require(bet.amount <= msg.value, "You haven't sent required amount of ETH to accept");
-		require(bet.lastBlockNumber > block.number + timeOutBlockNumber, "Bets can be lastly accepted 1 hour before the last block number");
+		require(bet.targetTimestamp > block.timestamp + timeoutValueForOneHour, "Bets can lastly be accepted 1 hour before the bet finishes");
 
 		// Assign the second player and set state to ACCEPTED and emit an event
 		bets[_betId].player2 = msg.sender;
@@ -129,14 +116,15 @@ contract DuelContract {
 		emit BetDeleted(_betId);
 	}
 
-	function finishBet(uint256 _betId) external {
+	function finishBet(uint256 _betId, int256 _priceAtBetFinished) external onlyBoss {
 		Bet storage bet = bets[_betId];
+		console.log("-> bet.targetTimestamp", bet.targetTimestamp);		//TODO: DELETE
+		console.log("-> block.timestamp", block.timestamp);				//TODO: DELETE
 		require(bet.state == BetState.ACCEPTED, "Bet is not in ACCEPTED state");
-		require(bet.lastBlockNumber < block.number, "Bet is not completed yet");
+		require(bet.targetTimestamp < block.timestamp, "Bet is not completed yet");
 
 		// Determine the result based on the winner and update game state accordingly
-		int price = getLatestPrice();
-		if ((price > bet.targetPrice && bet.isHigherChosen == true) || (price < bet.targetPrice && bet.isHigherChosen == false)) {
+		if ((_priceAtBetFinished > bet.targetPrice && bet.isHigherChosen == true) || (_priceAtBetFinished < bet.targetPrice && bet.isHigherChosen == false)) {
 			bets[_betId].state = BetState.PLAYER1WON;
 			payable(bet.player1).transfer(19 * bet.amount / 10);
 			emit BetFinished(_betId, bet.player1, bet.player2, bet.amount);
@@ -146,15 +134,19 @@ contract DuelContract {
 			emit BetFinished(_betId, bet.player2, bet.player1, bet.amount);
 		}
 	}
-
+	
 	function getLatestPrice() public view returns (int) {
-	    (, int price, , , ) = priceFeed.latestRoundData();
-	    //return (price / 1e8);
-	    return price;
+	    (
+	        uint80 roundID, 
+	        int price,
+	        uint startedAt,
+	        uint timeStamp,
+	        uint80 answeredInRound
+	    ) = priceFeed.latestRoundData();
+	    return (price / 1e8);
 	}
 
-	function withdraw() external {
-		require(msg.sender == owner, "You are not babacan.eth");
+	function withdraw() external onlyBoss {
 		uint256 balance = address(this).balance;
 		require(balance > 0, "Contract has no balance to withdraw");
 		payable(owner).transfer(balance);

@@ -6,32 +6,36 @@ import { Web3 } from "web3"
 
 const CreateBet = () => {
   
-  const [currentBlockNumber, setCurrentBlockNumber] = useState<string>("");
+  const [currentTimestamp, setCurrentTimestamp] = useState<string>("");
   const [targetPrice, setTargetPrice] = useState<string>("");
   const [isHigherChosen, setIsHigherChosen] = useState(true);
-  const [lastBlockNumber, setLastBlockNumber] = useState<string>("");
+  const [targetTimestamp, setTargetTimestamp] = useState<string>("");
   const [betAmount, setBetAmount]  = useState<string>("");
 
   const { writeAsync: createBet } = useScaffoldContractWrite({
     contractName: "DuelContract",
     functionName: "createBet",
     value: parseEther(betAmount),
-    args: [BigInt(targetPrice), isHigherChosen, BigInt(lastBlockNumber)],
+    args: [BigInt(targetPrice), isHigherChosen, BigInt(targetTimestamp)],
   });
 
-  useEffect(() => {  
-    const fetchBlockNumber = () => {
-      const provider = "https://eth-sepolia.g.alchemy.com/v2/oKxs-03sij-U_N0iOlrSsZFr29-IqbuF"
-      const web3Provider = new Web3.providers.HttpProvider(provider);
-      const web3 = new Web3(web3Provider);
-      
-      web3.eth.getBlockNumber().then((result) => { setCurrentBlockNumber(result.toString()); });
+  useEffect(() => {
+    const fetchCurrentTimestamp = () => {
+      const dateTime = new Date();
+      const timestamp = Math.floor(dateTime.getTime() / 1000);
+      setCurrentTimestamp(timestamp.toString()); 
     }
-    fetchBlockNumber();
-    const intervalId = setInterval(fetchBlockNumber, 1000);
+    fetchCurrentTimestamp();
+    const intervalId = setInterval(fetchCurrentTimestamp, 1000);
 
     return () => clearInterval(intervalId);
   }, []);
+
+  const convertToTimestamp = (dateTimeString) => {
+    const selectedDateTime = new Date(dateTimeString);
+    const timestamp = Math.floor(selectedDateTime.getTime() / 1000);   // Milliseconds to seconds conversion
+    setTargetTimestamp(timestamp.toString());
+  }
 
   return (
     <div className="px-8 py-12 space-y-3">
@@ -49,21 +53,20 @@ const CreateBet = () => {
         />
       </div>
       <div className="flex flex-row">
-        <div className="w-full text-l">Last block number for deadline:</div>
-        <input
-          type="text"
-          value={lastBlockNumber}
-          onChange={(e) => setLastBlockNumber(e.target.value)}
-          style={{ width: "80px", color: "#EBF5FF", background: "#002060", border: "1px solid #EBF5FF", borderRadius: "8px", ring: "1px solid indigo", ringColor: "indigo", paddingLeft: "6px", outline: "none"}}
-        />
-      </div>
-      <div className="flex flex-row">
         <div className="w-full text-l">Bet amount:</div>
         <input
           type="text"
           value={betAmount}
           onChange={(e) => setBetAmount(e.target.value)}
           style={{ width: "80px", color: "#EBF5FF", background: "#002060", border: "1px solid #EBF5FF", borderRadius: "8px", ring: "1px solid indigo", ringColor: "indigo", paddingLeft: "6px", outline: "none"}}
+        />
+      </div>
+      <div className="flex flex-row">
+        <div className="w-full text-l">Deadline:</div>
+        <input
+          type="datetime-local"
+          onChange={(e) => convertToTimestamp(e.target.value)}
+          style={{ width: "500px", color: "#EBF5FF", background: "#002060", border: "1px solid #EBF5FF", borderRadius: "8px", ring: "1px solid indigo", ringColor: "indigo", paddingLeft: "6px", outline: "none"}}
         />
       </div>
       <div className="flex flex-row items-center">
@@ -80,11 +83,11 @@ const CreateBet = () => {
       <button className="btn btn-secondary h-[3rem] min-h-[3rem] mt-16 ml-32" onClick={() => createBet()}>
         Create your bet!
       </button>
-      <div style={{ marginBottom: '2rem' }}></div>
+      <div style={{ marginTop: '3rem' }}></div>
       <div className="block text-l font-bold">
-        Current Block No: {currentBlockNumber}
+        Current Timestamp: {currentTimestamp}
       </div>
-      <span  style={{ fontSize: '0.8em' }}>*Please note that the block number increases every 15 seconds.</span>
+      <span  style={{ fontSize: '0.8em' }}>*Please note that the timestamp data from the Sepolia network is delayed compared to the standard.</span>
     </div>
   );
 };

@@ -3,12 +3,15 @@ import { useScaffoldContractWrite, useScaffoldEventHistory } from "~~/hooks/scaf
 import { Address } from "~~/components/scaffold-eth";
 import { useAccount } from "wagmi";
 import { formatEther } from "viem";
+import { Web3 } from "web3"
+import { Contract } from '@wagmi/core'
 
 const BetList = () => {
 
   const { address: connectedAddress } = useAccount();
   const [betId, setBetId] = useState("");
   const [betAmount, setBetAmount] = useState("");
+  const [priceAtBetFinished, setPriceAtBetFinished] = useState("");
   const [betList, setBetList] = useState([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
 
@@ -28,7 +31,7 @@ const BetList = () => {
   const { writeAsync: finishBet } = useScaffoldContractWrite({
     contractName: "DuelContract",
     functionName: "finishBet",
-    args: [BigInt(betId)],
+    args: [BigInt(betId), BigInt(priceAtBetFinished)],
   });
 
   const { data: betCreatedHistory } = useScaffoldEventHistory({
@@ -73,6 +76,60 @@ const BetList = () => {
     }
   }, [betCreatedHistory, betDeletedHistory, betAcceptedHistory, betFinishedHistory]);
 
+  const provider = "https://eth-sepolia.g.alchemy.com/v2/oKxs-03sij-U_N0iOlrSsZFr29-IqbuF"
+  const web3Provider = new Web3.providers.HttpProvider(provider);
+  const web3 = new Web3(web3Provider);
+  const aggregatorV3InterfaceABI = [{"inputs":[],"name":"decimals","outputs":[{"internalType":"uint8","name":"","type":"uint8"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"description","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"uint80","name":"_roundId","type":"uint80"}],"name":"getRoundData","outputs":[{"internalType":"uint80","name":"roundId","type":"uint80"},{"internalType":"int256","name":"answer","type":"int256"},{"internalType":"uint256","name":"startedAt","type":"uint256"},{"internalType":"uint256","name":"updatedAt","type":"uint256"},{"internalType":"uint80","name":"answeredInRound","type":"uint80"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"latestRoundData","outputs":[{"internalType":"uint80","name":"roundId","type":"uint80"},{"internalType":"int256","name":"answer","type":"int256"},{"internalType":"uint256","name":"startedAt","type":"uint256"},{"internalType":"uint256","name":"updatedAt","type":"uint256"},{"internalType":"uint80","name":"answeredInRound","type":"uint80"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"version","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"}];
+  const addr = "0x694AA1769357215DE4FAC081bf1f309aDC325306";
+  const priceFeed = new web3.eth.Contract(aggregatorV3InterfaceABI, addr);
+
+  const handleFinish = async (singleEventBetCreated) => {
+    const targetTimestamp = BigInt(singleEventBetCreated.args[5].toString());
+    console.log("--target timestamp: ", targetTimestamp);
+
+    try {
+      const latestRoundData = await priceFeed.methods.latestRoundData().call();
+      console.log("latest round id: ", latestRoundData.roundId);
+      console.log("--latest startedAt: ", latestRoundData.startedAt);
+      console.log("--latest updatedAt: ", latestRoundData.updatedAt);
+
+      if(targetTimestamp < latestRoundData.startedAt) {
+        const phaseId = Number(BigInt(latestRoundData.roundId) >> 64n);
+        const aggregatorRoundId = BigInt(latestRoundData.roundId) & BigInt("0xFFFFFFFFFFFFFFFF");
+        const firstRoundId = BigInt(latestRoundData.roundId) - aggregatorRoundId + 1n;
+        console.log("first round id: ", firstRoundId);
+        let isRoundIdFound = false;
+        let roundIdAtTarget;
+
+        for (let i = BigInt(latestRoundData.roundId); i > firstRoundId; i--) {
+          const historicalRoundData = await priceFeed.methods.getRoundData(i).call();
+          if (targetTimestamp > historicalRoundData.updatedAt) {
+            console.log("--historical timestamp: ", historicalRoundData.updatedAt);
+            roundIdAtTarget = historicalRoundData.roundId;
+            isRoundIdFound = true;
+            break;
+          }
+        }
+
+        if(isRoundIdFound) {
+          console.log("round id at target: ", roundIdAtTarget);
+          const priceDataAtTarget = await priceFeed.methods.getRoundData(roundIdAtTarget).call();
+          const priceAtTarget =  priceDataAtTarget.answer / BigInt(1e8);
+          console.log("price at target: ", priceAtTarget);
+          setPriceAtBetFinished(priceAtTarget.toString());
+          finishBet({ args: [BigInt(singleEventBetCreated.args[0]), BigInt(priceAtTarget)] })
+        }
+        else
+          console.error("Not found with", latestRoundData.roundId);
+      } else {
+        console.error("Bet is not completed yet!");
+      }
+
+    } catch (error) {
+      console.error("Error:", error);
+    }
+  };
+  
   const handleDelete = (singleEventBetCreated) => {
     deleteBet({ args: [BigInt(singleEventBetCreated.args[0])] });
   };
@@ -83,8 +140,16 @@ const BetList = () => {
     acceptBet({ args: [BigInt(singleEventBetCreated.args[0])], value: BigInt(singleEventBetCreated.args[2].toString()) });
   };
 
-  const handleFinish = (singleEventBetCreated) => {
-    finishBet({ args: [BigInt(singleEventBetCreated.args[0])] })
+  const formatTimestamp = (timestamp: number): string => {
+    const date = new Date(timestamp * 1000); // Unix zaman damgasını milisaniyeye çevir
+    const options: Intl.DateTimeFormatOptions = {
+      year: '2-digit',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    };
+    return new Intl.DateTimeFormat('en-US', options).format(date).toString();
   };
 
   return (
@@ -103,7 +168,7 @@ const BetList = () => {
                   <th>Bet Amount</th>
                   <th>Target Price</th>
                   <th>isHigher</th>
-                  <th>Ends at(block no)</th>
+                  <th>Deadline</th>
                   <th>Status</th>
                 </tr>
               </thead>
@@ -123,14 +188,14 @@ const BetList = () => {
                         <td>{parseFloat(formatEther(singleEventBetCreated.args[2])).toFixed(4)}</td>
                         <td>{parseInt(singleEventBetCreated.args[3].toString())}</td>
                         <td>{singleEventBetCreated.args[4].toString()}</td>
-                        <td>{parseInt(singleEventBetCreated.args[5].toString())}</td>
+                        <td>{formatTimestamp(parseInt(singleEventBetCreated.args[5].toString()))}</td>
                         <td>
                           {isBetFinished ? (
                             <span>Finished</span>
                           ) : isBetAccepted ? (
                             <>
                               <span>Accepted</span>
-                              <button className="btn btn-secondary h-[1.5rem] min-h-[1.5rem]" colorScheme={"yellow"} onClick={() => handleFinish(singleEventBetCreated)}>
+                              <button className="btn btn-secondary h-[2rem] min-h-[2rem]" onClick={() => handleFinish(singleEventBetCreated)}>
                                 Finish bet!
                               </button>
                             </>
@@ -140,11 +205,11 @@ const BetList = () => {
                             <>
                               <span>Waiting   </span>
                               {singleEventBetCreated.args[1] === connectedAddress ? (
-                                <button className="btn btn-secondary h-[1.5rem] min-h-[1.5rem]" colorScheme={"red"} onClick={() => handleDelete(singleEventBetCreated)}>
+                                <button className="btn btn-secondary h-[1.5rem] min-h-[1.5rem]" onClick={() => handleDelete(singleEventBetCreated)}>
                                   Delete bet!
                                 </button>
                               ) : (
-                                <button className="btn btn-secondary h-[1.5rem] min-h-[1.5rem]" colorScheme={"green"} onClick={() => handleAccept(singleEventBetCreated)}>
+                                <button className="btn btn-secondary h-[3rem] min-h-[3rem]" onClick={() => handleAccept(singleEventBetCreated)}>
                                   Accept bet!
                                 </button>
                               )}

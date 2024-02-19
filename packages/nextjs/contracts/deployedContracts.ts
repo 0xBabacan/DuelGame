@@ -7,7 +7,7 @@ import { GenericContractsDeclaration } from "~~/utils/scaffold-eth/contract";
 const deployedContracts = {
   11155111: {
     DuelContract: {
-      address: "0x2d07e04661D306f39ea19761115f78e1cbB715D9",
+      address: "0xcAa089C37765756B82A65F9650704241C6AbF8D1",
       abi: [
         {
           inputs: [],
@@ -69,7 +69,7 @@ const deployedContracts = {
             {
               indexed: false,
               internalType: "uint256",
-              name: "lastBlockNumber",
+              name: "targetTimestamp",
               type: "uint256",
             },
           ],
@@ -183,7 +183,7 @@ const deployedContracts = {
             },
             {
               internalType: "uint256",
-              name: "lastBlockNumber",
+              name: "targetTimestamp",
               type: "uint256",
             },
             {
@@ -209,7 +209,7 @@ const deployedContracts = {
             },
             {
               internalType: "uint256",
-              name: "_lastBlockNumber",
+              name: "_targetTimestamp",
               type: "uint256",
             },
           ],
@@ -238,23 +238,15 @@ const deployedContracts = {
               name: "_betId",
               type: "uint256",
             },
+            {
+              internalType: "int256",
+              name: "_priceAtBetFinished",
+              type: "int256",
+            },
           ],
           name: "finishBet",
           outputs: [],
           stateMutability: "nonpayable",
-          type: "function",
-        },
-        {
-          inputs: [],
-          name: "getBlockNumber",
-          outputs: [
-            {
-              internalType: "uint256",
-              name: "",
-              type: "uint256",
-            },
-          ],
-          stateMutability: "view",
           type: "function",
         },
         {
@@ -285,7 +277,7 @@ const deployedContracts = {
         },
         {
           inputs: [],
-          name: "timeOutBlockNumber",
+          name: "timeoutValueForOneHour",
           outputs: [
             {
               internalType: "uint256",

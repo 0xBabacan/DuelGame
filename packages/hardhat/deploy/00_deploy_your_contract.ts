@@ -32,8 +32,17 @@ const deployYourContract: DeployFunction = async function (hre: HardhatRuntimeEn
   });
 
   // Get the deployed contract to interact with it after deploying.
-  //const yourContract = await hre.ethers.getContract<Contract>("DuelContract", deployer);
-  //console.log("👋 Initial greeting:", await yourContract.greeting());
+  const duelContract = await hre.ethers.getContract<Contract>("DuelContract", deployer);
+
+  // Transfer ownership to your front end address
+  console.log("\n 🤹  Sending ownership to frontend address...\n");
+  const ownerTx = await duelContract .transferOwnership("0x5D70E3b540f58beCd10B74f6c0958b31e3190DA7");
+  
+  console.log("\n       confirming...\n");
+  const ownershipResult = await ownerTx.wait();
+  if (ownershipResult) {
+    console.log("✅ ownership transferred successfully!\n");
+  }
 };
 
 export default deployYourContract;
