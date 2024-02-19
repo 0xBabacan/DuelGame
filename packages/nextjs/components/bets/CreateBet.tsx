@@ -1,13 +1,13 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useScaffoldContractRead, useScaffoldContractWrite } from "~~/hooks/scaffold-eth";
-import { parseEther, createPublicClient } from "viem";
-import { getBlockNumber } from '@wagmi/core'
-import { Web3 } from "web3"
+import { parseEther } from "viem";
+
+// REGEX for number inputs (only allow numbers and a single decimal point)
+export const NUMBER_REGEX = /^\.?\d+\.?\d*$/;
 
 const CreateBet = () => {
   
-  const [currentTimestamp, setCurrentTimestamp] = useState<string>("");
-  const [targetPrice, setTargetPrice] = useState<string>("");
+  const [targetPrice, setTargetPrice] = useState("");
   const [isHigherChosen, setIsHigherChosen] = useState(true);
   const [targetTimestamp, setTargetTimestamp] = useState<string>("");
   const [betAmount, setBetAmount]  = useState<string>("");
@@ -16,20 +16,12 @@ const CreateBet = () => {
     contractName: "DuelContract",
     functionName: "createBet",
     value: parseEther(betAmount),
-    args: [BigInt(targetPrice), isHigherChosen, BigInt(targetTimestamp)],
+    args: [
+      NUMBER_REGEX.test(targetPrice) ? parseEther(targetPrice) : targetPrice, 
+      isHigherChosen, 
+      BigInt(targetTimestamp
+    )],
   });
-
-  useEffect(() => {
-    const fetchCurrentTimestamp = () => {
-      const dateTime = new Date();
-      const timestamp = Math.floor(dateTime.getTime() / 1000);
-      setCurrentTimestamp(timestamp.toString()); 
-    }
-    fetchCurrentTimestamp();
-    const intervalId = setInterval(fetchCurrentTimestamp, 1000);
-
-    return () => clearInterval(intervalId);
-  }, []);
 
   const convertToTimestamp = (dateTimeString) => {
     const selectedDateTime = new Date(dateTimeString);
@@ -48,7 +40,7 @@ const CreateBet = () => {
           id="targetPrice"
           type="text"
           value={targetPrice}
-          onChange={(e) => setTargetPrice(e.target.value)}
+          onChange={(e) => setTargetPrice(e.target.value.toString())}
           style={{ width: "80px", color: "#EBF5FF", background: "#002060", border: "1px solid #EBF5FF", borderRadius: "8px", ring: "1px solid indigo", ringColor: "indigo", paddingLeft: "6px", outline: "none"}}
         />
       </div>
@@ -70,24 +62,29 @@ const CreateBet = () => {
         />
       </div>
       <div className="flex flex-row items-center">
-        <div className="text-l">
-          Price will be {isHigherChosen ? 'higher' : 'smaller'} than the target price
+        <div className="text-l">Price will be {isHigherChosen ? 'higher' : 'smaller'} than the target price:</div>
+        <div className="ml-2" style={{ fontSize: '0.9em' }}>
+          <button className={`bg-gray-200 px-2 py-1 rounded-lg text-gray-700 hover:bg-gray-300 ${isHigherChosen ? 'font-bold' : ''}`}
+            onClick={() => setIsHigherChosen(true)}
+          >
+            Higher
+          </button>
+          <button className={`ml-2 bg-gray-200 px-2 py-1 rounded-lg text-gray-700 hover:bg-gray-300 ${!isHigherChosen ? 'font-bold' : ''}`}
+            onClick={() => setIsHigherChosen(false)}
+          >
+            Smaller
+          </button>
         </div>
-        <input 
-          type="checkbox"
-          checked={isHigherChosen}
-          onChange={(e) => setIsHigherChosen(e.target.checked)}
-          style={{ marginLeft: '8px' }}
-        />
       </div>
       <button className="btn btn-secondary h-[3rem] min-h-[3rem] mt-16 ml-32" onClick={() => createBet()}>
         Create your bet!
       </button>
       <div style={{ marginTop: '3rem' }}></div>
-      <div className="block text-l font-bold">
-        Current Timestamp: {currentTimestamp}
-      </div>
-      <span  style={{ fontSize: '0.8em' }}>*Please note that the timestamp data from the Sepolia network is delayed compared to the standard.</span>
+      <span style={{ fontSize: '0.8em', fontStyle: 'italic' }}>
+        *Please note that using chainlink in Sepolia Network to get the price cannot promise the price data at the target timestamp is the latest 
+        because the data feed will be updated if the price alternates more than the deviation threshold. 
+        Therefore, we apologize in advance for any potential losses that may occur due to this situation. Have fun!
+      </span>
     </div>
   );
 };

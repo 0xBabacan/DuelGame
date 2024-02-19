@@ -2,11 +2,11 @@ import React, { useEffect, useState } from "react";
 import { useScaffoldContractWrite, useScaffoldEventHistory } from "~~/hooks/scaffold-eth";
 import { Address } from "~~/components/scaffold-eth";
 import { useAccount } from "wagmi";
-import { formatEther } from "viem";
+import { formatEther, parseEther } from "viem";
 import { Web3 } from "web3"
 import { Contract } from '@wagmi/core'
 
-const BetList = () => {
+const BetHistory = () => {
 
   const { address: connectedAddress } = useAccount();
   const [betId, setBetId] = useState("");
@@ -31,7 +31,7 @@ const BetList = () => {
   const { writeAsync: finishBet } = useScaffoldContractWrite({
     contractName: "DuelContract",
     functionName: "finishBet",
-    args: [BigInt(betId), BigInt(priceAtBetFinished)],
+    args: [BigInt(betId), parseEther(priceAtBetFinished)],
   });
 
   const { data: betCreatedHistory } = useScaffoldEventHistory({
@@ -76,6 +76,9 @@ const BetList = () => {
     }
   }, [betCreatedHistory, betDeletedHistory, betAcceptedHistory, betFinishedHistory]);
 
+  /*
+      Obtaining the price data from chainlink is moved from smart contract to here so that the gas fee is lowered
+  */ 
   const provider = "https://eth-sepolia.g.alchemy.com/v2/oKxs-03sij-U_N0iOlrSsZFr29-IqbuF"
   const web3Provider = new Web3.providers.HttpProvider(provider);
   const web3 = new Web3(web3Provider);
@@ -85,26 +88,20 @@ const BetList = () => {
 
   const handleFinish = async (singleEventBetCreated) => {
     const targetTimestamp = BigInt(singleEventBetCreated.args[5].toString());
-    console.log("--target timestamp: ", targetTimestamp);
 
     try {
       const latestRoundData = await priceFeed.methods.latestRoundData().call();
-      console.log("latest round id: ", latestRoundData.roundId);
-      console.log("--latest startedAt: ", latestRoundData.startedAt);
-      console.log("--latest updatedAt: ", latestRoundData.updatedAt);
 
-      if(targetTimestamp < latestRoundData.startedAt) {
+      if(targetTimestamp < latestRoundData.updatedAt) {
         const phaseId = Number(BigInt(latestRoundData.roundId) >> 64n);
         const aggregatorRoundId = BigInt(latestRoundData.roundId) & BigInt("0xFFFFFFFFFFFFFFFF");
         const firstRoundId = BigInt(latestRoundData.roundId) - aggregatorRoundId + 1n;
-        console.log("first round id: ", firstRoundId);
         let isRoundIdFound = false;
         let roundIdAtTarget;
 
         for (let i = BigInt(latestRoundData.roundId); i > firstRoundId; i--) {
           const historicalRoundData = await priceFeed.methods.getRoundData(i).call();
           if (targetTimestamp > historicalRoundData.updatedAt) {
-            console.log("--historical timestamp: ", historicalRoundData.updatedAt);
             roundIdAtTarget = historicalRoundData.roundId;
             isRoundIdFound = true;
             break;
@@ -112,15 +109,13 @@ const BetList = () => {
         }
 
         if(isRoundIdFound) {
-          console.log("round id at target: ", roundIdAtTarget);
           const priceDataAtTarget = await priceFeed.methods.getRoundData(roundIdAtTarget).call();
-          const priceAtTarget =  priceDataAtTarget.answer / BigInt(1e8);
-          console.log("price at target: ", priceAtTarget);
-          setPriceAtBetFinished(priceAtTarget.toString());
-          finishBet({ args: [BigInt(singleEventBetCreated.args[0]), BigInt(priceAtTarget)] })
+          const priceAtTargetAsFloat =  (parseFloat(priceDataAtTarget.answer.toString()) / 10**8);
+          const priceAtTargetInWei = parseEther(priceAtTargetAsFloat.toString());
+          finishBet({ args: [BigInt(singleEventBetCreated.args[0]), priceAtTargetInWei] });
         }
         else
-          console.error("Not found with", latestRoundData.roundId);
+          console.error("Target Round ID couldnt be found with the latest round id:", latestRoundData.roundId);
       } else {
         console.error("Bet is not completed yet!");
       }
@@ -141,7 +136,7 @@ const BetList = () => {
   };
 
   const formatTimestamp = (timestamp: number): string => {
-    const date = new Date(timestamp * 1000); // Unix zaman damgasını milisaniyeye çevir
+    const date = new Date(timestamp * 1000);
     const options: Intl.DateTimeFormatOptions = {
       year: '2-digit',
       month: '2-digit',
@@ -153,16 +148,16 @@ const BetList = () => {
   };
 
   return (
-    <div className="px-8 py-12">
+    <div className="px-8 py-12 text-gray-700">
       {isLoadingHistory ? (
           <strong> Loading... </strong>
       ) : (
         <div>
-          <span className="text-center mb-4 block text-2xl font-bold">Active Bets</span>
-          <div className="overflow-x-auto shadow-lg">
-            <table className="table table-zebra w-full">
+          <span className="text-center mb-4 block text-2xl font-bold">Bet History</span>
+          <div className="overflow-x-auto rounded-xl" style={{ flex: 1, fontSize: '1.0em' }}>
+            <table className="table w-full">
               <thead>
-                <tr className="bg-primary">
+                <tr className="bg-primary text-center" style={{ fontSize: '1.2em' }}>
                   <th>Bet ID</th>
                   <th>Created by</th>
                   <th>Bet Amount</th>
@@ -186,7 +181,7 @@ const BetList = () => {
                         <td>{parseInt(singleEventBetCreated.args[0].toString())}</td>
                         <td><Address address={singleEventBetCreated.args[1]} /></td>
                         <td>{parseFloat(formatEther(singleEventBetCreated.args[2])).toFixed(4)}</td>
-                        <td>{parseInt(singleEventBetCreated.args[3].toString())}</td>
+                        <td>{singleEventBetCreated.args[3] !== "" ? (parseFloat(singleEventBetCreated.args[3].toString()) / 10**18).toFixed(4) : 0}</td>
                         <td>{singleEventBetCreated.args[4].toString()}</td>
                         <td>{formatTimestamp(parseInt(singleEventBetCreated.args[5].toString()))}</td>
                         <td>
@@ -194,8 +189,8 @@ const BetList = () => {
                             <span>Finished</span>
                           ) : isBetAccepted ? (
                             <>
-                              <span>Accepted</span>
-                              <button className="btn btn-secondary h-[2rem] min-h-[2rem]" onClick={() => handleFinish(singleEventBetCreated)}>
+                              <span style={{ marginRight: '1rem' }}>Accepted</span>
+                              <button className="btn btn-secondary h-[1.8rem] min-h-[1.5rem]" onClick={() => handleFinish(singleEventBetCreated)}>
                                 Finish bet!
                               </button>
                             </>
@@ -203,13 +198,13 @@ const BetList = () => {
                             <span>Deleted</span>
                           ) : (
                             <>
-                              <span>Waiting   </span>
+                              <span style={{ marginRight: '1rem' }}>Waiting   </span>
                               {singleEventBetCreated.args[1] === connectedAddress ? (
-                                <button className="btn btn-secondary h-[1.5rem] min-h-[1.5rem]" onClick={() => handleDelete(singleEventBetCreated)}>
+                                <button className="btn btn-secondary h-[1.8rem] min-h-[1.5rem]" onClick={() => handleDelete(singleEventBetCreated)}>
                                   Delete bet!
                                 </button>
                               ) : (
-                                <button className="btn btn-secondary h-[3rem] min-h-[3rem]" onClick={() => handleAccept(singleEventBetCreated)}>
+                                <button className="btn btn-secondary h-[1.8rem] min-h-[1.5rem]" onClick={() => handleAccept(singleEventBetCreated)}>
                                   Accept bet!
                                 </button>
                               )}
@@ -229,4 +224,4 @@ const BetList = () => {
   );
 };
 
-export default BetList;
+export default BetHistory;

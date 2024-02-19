@@ -3,11 +3,10 @@ pragma solidity >=0.8.0 <0.9.0;
 
 // Useful for debugging. Remove when deploying to a live network.
 import "hardhat/console.sol";
-import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 /**
- * @title Duelgame
+ * @title Duel
  * @author 0xBabacan
  * @notice A betting duello game contract.
  * @dev Currently it will be used for challenging other accounts to bet on ETH price
@@ -15,9 +14,8 @@ import "@openzeppelin/contracts/access/Ownable.sol";
  */
 
 contract DuelContract is Ownable {
-	address public owner = 0x5D70E3b540f58beCd10B74f6c0958b31e3190DA7;	// Owner is babacan.eth
 	uint256 public betIdCounter = 0;
-    uint256 public immutable timeoutValueForOneHour = 300; // TODO 3600;	// (60 * 60) Bet cannot be accepted in the last hour 
+    uint256 public immutable timeoutValueForOneMinute = 60; // Bet cannot be accepted in the last minute 
 
 	enum BetState {
 		WAITING,
@@ -30,7 +28,7 @@ contract DuelContract is Ownable {
 		address player1;
 		address player2;
 		BetState state;
-		int256 targetPrice;
+		uint256 targetPrice;
 		bool isHigherChosen;
 		uint256 targetTimestamp;
 		uint256 amount;
@@ -42,7 +40,7 @@ contract DuelContract is Ownable {
 		uint256 indexed betId,
 		address indexed player1,
 		uint256 indexed amount,
-		int256 targetPrice,
+		uint256 targetPrice,
 		bool isHigherChosen,
 		uint256 targetTimestamp
 	);
@@ -60,19 +58,12 @@ contract DuelContract is Ownable {
 		uint256 amount
 	);
 
-	AggregatorV3Interface internal priceFeed;
-
-	constructor() {
-		yourToken = YourToken(tokenAddress);
-        priceFeed = AggregatorV3Interface(0x694AA1769357215DE4FAC081bf1f309aDC325306);	// ETH / USD
-    }
-
 	modifier onlyBoss() {
 		require(msg.sender == owner(), "Sorry, you're not the boss!");
 		_;
 	}
 
-	function createBet(int256 _targetPrice, bool _isHigherChosen, uint256 _targetTimestamp) external payable {
+	function createBet(uint256 _targetPrice, bool _isHigherChosen, uint256 _targetTimestamp) external payable {
 		require(_targetPrice > 0, "You cannot create bet with target price being 0");
 		require(_targetTimestamp > block.timestamp, "Last block number is smaller than the current block number!");
 
@@ -96,9 +87,9 @@ contract DuelContract is Ownable {
 		require(bet.player1 != msg.sender, "You can't challenge yourself");
 		require(bet.state == BetState.WAITING, "Bet must be WAITING to be accepted");
 		require(bet.amount <= msg.value, "You haven't sent required amount of ETH to accept");
-		require(bet.targetTimestamp > block.timestamp + timeoutValueForOneHour, "Bets can lastly be accepted 1 hour before the bet finishes");
+		require(bet.targetTimestamp > block.timestamp + timeoutValueForOneMinute, "Bets can lastly be accepted 1 minute before the bet finishes");
 
-		// Assign the second player and set state to ACCEPTED and emit an event
+		// Assign the second player and set state to ACCEPTED
 		bets[_betId].player2 = msg.sender;
 		bets[_betId].state = BetState.ACCEPTED;
 		emit BetAccepted(_betId, bet.player2);
@@ -111,45 +102,32 @@ contract DuelContract is Ownable {
 
 		bets[_betId].state = BetState.PLAYER1WON;
 		
-		// Transfer the bet amount to the player
+		// Transfer the bet amount to the bet creator
 		payable(msg.sender).transfer(bet.amount);
 		emit BetDeleted(_betId);
 	}
 
-	function finishBet(uint256 _betId, int256 _priceAtBetFinished) external onlyBoss {
+	function finishBet(uint256 _betId, uint256 _priceAtBetFinished) external onlyBoss {
 		Bet storage bet = bets[_betId];
-		console.log("-> bet.targetTimestamp", bet.targetTimestamp);		//TODO: DELETE
-		console.log("-> block.timestamp", block.timestamp);				//TODO: DELETE
 		require(bet.state == BetState.ACCEPTED, "Bet is not in ACCEPTED state");
 		require(bet.targetTimestamp < block.timestamp, "Bet is not completed yet");
 
-		// Determine the result based on the winner and update game state accordingly
+		// Determine the winner based on the price, update bet state accordingly and transfer the bet amount to the winner
 		if ((_priceAtBetFinished > bet.targetPrice && bet.isHigherChosen == true) || (_priceAtBetFinished < bet.targetPrice && bet.isHigherChosen == false)) {
 			bets[_betId].state = BetState.PLAYER1WON;
-			payable(bet.player1).transfer(19 * bet.amount / 10);
+			payable(bet.player1).transfer(19 * bet.amount / 10);	// 10 percent of the total bet amount will reside in the contract
 			emit BetFinished(_betId, bet.player1, bet.player2, bet.amount);
 		} else {
 			bets[_betId].state = BetState.PLAYER2WON;
-			payable(bet.player1).transfer(19 * bet.amount / 10);
+			payable(bet.player1).transfer(19 * bet.amount / 10);	// 10 percent of the total bet amount will reside in the contract
 			emit BetFinished(_betId, bet.player2, bet.player1, bet.amount);
 		}
-	}
-	
-	function getLatestPrice() public view returns (int) {
-	    (
-	        uint80 roundID, 
-	        int price,
-	        uint startedAt,
-	        uint timeStamp,
-	        uint80 answeredInRound
-	    ) = priceFeed.latestRoundData();
-	    return (price / 1e8);
 	}
 
 	function withdraw() external onlyBoss {
 		uint256 balance = address(this).balance;
 		require(balance > 0, "Contract has no balance to withdraw");
-		payable(owner).transfer(balance);
+		payable(owner()).transfer(balance);
 	}
 
     receive() external payable {}

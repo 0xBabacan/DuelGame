@@ -7,13 +7,8 @@ import { GenericContractsDeclaration } from "~~/utils/scaffold-eth/contract";
 const deployedContracts = {
   11155111: {
     DuelContract: {
-      address: "0xcAa089C37765756B82A65F9650704241C6AbF8D1",
+      address: "0xaca2c324CAd99A162b9D82f44dc1991A69b83C05",
       abi: [
-        {
-          inputs: [],
-          stateMutability: "nonpayable",
-          type: "constructor",
-        },
         {
           anonymous: false,
           inputs: [
@@ -56,9 +51,9 @@ const deployedContracts = {
             },
             {
               indexed: false,
-              internalType: "int256",
+              internalType: "uint256",
               name: "targetPrice",
-              type: "int256",
+              type: "uint256",
             },
             {
               indexed: false,
@@ -121,6 +116,25 @@ const deployedContracts = {
           type: "event",
         },
         {
+          anonymous: false,
+          inputs: [
+            {
+              indexed: true,
+              internalType: "address",
+              name: "previousOwner",
+              type: "address",
+            },
+            {
+              indexed: true,
+              internalType: "address",
+              name: "newOwner",
+              type: "address",
+            },
+          ],
+          name: "OwnershipTransferred",
+          type: "event",
+        },
+        {
           inputs: [
             {
               internalType: "uint256",
@@ -172,9 +186,9 @@ const deployedContracts = {
               type: "uint8",
             },
             {
-              internalType: "int256",
+              internalType: "uint256",
               name: "targetPrice",
-              type: "int256",
+              type: "uint256",
             },
             {
               internalType: "bool",
@@ -198,9 +212,9 @@ const deployedContracts = {
         {
           inputs: [
             {
-              internalType: "int256",
+              internalType: "uint256",
               name: "_targetPrice",
-              type: "int256",
+              type: "uint256",
             },
             {
               internalType: "bool",
@@ -239,27 +253,14 @@ const deployedContracts = {
               type: "uint256",
             },
             {
-              internalType: "int256",
+              internalType: "uint256",
               name: "_priceAtBetFinished",
-              type: "int256",
+              type: "uint256",
             },
           ],
           name: "finishBet",
           outputs: [],
           stateMutability: "nonpayable",
-          type: "function",
-        },
-        {
-          inputs: [],
-          name: "getLatestPrice",
-          outputs: [
-            {
-              internalType: "int256",
-              name: "",
-              type: "int256",
-            },
-          ],
-          stateMutability: "view",
           type: "function",
         },
         {
@@ -277,7 +278,14 @@ const deployedContracts = {
         },
         {
           inputs: [],
-          name: "timeoutValueForOneHour",
+          name: "renounceOwnership",
+          outputs: [],
+          stateMutability: "nonpayable",
+          type: "function",
+        },
+        {
+          inputs: [],
+          name: "timeoutValueForOneMinute",
           outputs: [
             {
               internalType: "uint256",
@@ -286,6 +294,19 @@ const deployedContracts = {
             },
           ],
           stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "address",
+              name: "newOwner",
+              type: "address",
+            },
+          ],
+          name: "transferOwnership",
+          outputs: [],
+          stateMutability: "nonpayable",
           type: "function",
         },
         {
@@ -300,7 +321,11 @@ const deployedContracts = {
           type: "receive",
         },
       ],
-      inheritedFunctions: {},
+      inheritedFunctions: {
+        owner: "@openzeppelin/contracts/access/Ownable.sol",
+        renounceOwnership: "@openzeppelin/contracts/access/Ownable.sol",
+        transferOwnership: "@openzeppelin/contracts/access/Ownable.sol",
+      },
     },
   },
 } as const;
