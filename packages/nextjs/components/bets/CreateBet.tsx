@@ -60,7 +60,7 @@ const CreateBet = () => {
         <input
           type="datetime-local"
           onChange={(e) => convertToTimestamp(e.target.value)}
-          style={{ width: "700px", color: "#EBF5FF", background: "#002060", border: "1px solid #EBF5FF", borderRadius: "8px", ring: "1px solid indigo", ringColor: "indigo", paddingLeft: "6px", outline: "none"}}
+          style={{ width: "750px", color: "#EBF5FF", background: "#002060", border: "1px solid #EBF5FF", borderRadius: "8px", ring: "1px solid indigo", ringColor: "indigo", paddingLeft: "6px", outline: "none"}}
         />
       </div>
       <div className="flex flex-row">
