@@ -184,11 +184,11 @@ const BetHistory = () => {
                         <td>{singleEventBetCreated.args[3] !== "" ? (parseFloat(singleEventBetCreated.args[3].toString()) / 10**18).toFixed(2) : 0}</td>
                         <td>{singleEventBetCreated.args[4] ? "higher" : "lower"}</td>
                         <td>{formatTimestamp(parseInt(singleEventBetCreated.args[5].toString()))}</td>
-                        <td className="items-center">
+                        <td className="items-center text-center">
                           {isBetFinished ? (
                             <span>Finished</span>
                           ) : isBetAccepted ? (
-                            <div className="flex flex-row items-center justify-center gap-2">
+                            <div className="flex flex-col items-center justify-center gap-2">
                               <span>Accepted</span>
                               <button className="btn btn-secondary h-[2rem] min-h-[1.5rem]" onClick={() => handleFinish(singleEventBetCreated)}>
                                 Finish bet!
