@@ -16,12 +16,12 @@ const CreateBet = () => {
   const { writeAsync: createBet } = useScaffoldContractWrite({
     contractName: "DuelContract",
     functionName: "createBet",
-    value: parseEther(betAmount),
+    value: NUMBER_REGEX.test(betAmount) ? parseEther(betAmount) : betAmount,
     args: [
       NUMBER_REGEX.test(targetPrice) ? parseEther(targetPrice) : targetPrice, 
       isHigherChosen, 
-      BigInt(targetTimestamp
-    )],
+      BigInt(targetTimestamp)
+    ],
   });
 
   const convertToTimestamp = (dateTimeString) => {
